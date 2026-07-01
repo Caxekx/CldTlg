@@ -1,0 +1,20 @@
+{
+  "PASTE_YOUR_TELEGRAM_ID_HERE": {
+    "name": "You",
+    "role": "admin",
+    "projects": ["*"],
+    "can_edit": true
+  },
+  "PASTE_TEAMMATE_TELEGRAM_ID_HERE": {
+    "name": "Teammate",
+    "role": "team",
+    "projects": ["rubrik", "avia-bot"],
+    "can_edit": true
+  },
+  "PASTE_VIEWER_TELEGRAM_ID_HERE": {
+    "name": "Viewer",
+    "role": "viewer",
+    "projects": ["rubrik"],
+    "can_edit": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "rubrik": {
+    "title": "RUBRIK",
+    "path": "/home/claudebot/projects/rubrik"
+  },
+  "avia-bot": {
+    "title": "Avia Bot",
+    "path": "/home/claudebot/projects/avia-bot"
+  },
+  "chelsea": {
+    "title": "Chelsea Brand",
+    "path": "/home/claudebot/projects/chelsea"
+  }
+}
