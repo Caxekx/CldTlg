@@ -224,14 +224,14 @@ async def run_claude(project_path: str, prompt: str, mode: str) -> str:
                 "Claude Code завершился с ошибкой.\n\n"
                 f"Код ошибки: {process.returncode}\n\n"
                 f"stderr:\n{err or 'Нет текста ошибки'}\n\n"
-                "Что проверить: `claude auth status --text`, путь к проекту, права пользователя claudebot."
+                "Что проверить: `claude auth status --text`, путь к проекту, права пользователя tsoillc."
             )
         return out or "Claude Code не вернул текстовый ответ."
 
     except asyncio.TimeoutError:
         return "Задача слишком долго выполнялась и была остановлена по таймауту. Уменьши запрос или увеличь CLAUDE_TIMEOUT_SECONDS в .env."
     except FileNotFoundError:
-        return f"Команда `{CLAUDE_BINARY}` не найдена. Укажи полный путь в .env: CLAUDE_BINARY=/home/claudebot/.local/bin/claude"
+        return f"Команда `{CLAUDE_BINARY}` не найдена. Укажи полный путь в .env: CLAUDE_BINARY=/home/tsoillc/.npm-global/bin/claude"
     except Exception as e:
         return f"Неожиданная ошибка: {type(e).__name__}: {e}"
 

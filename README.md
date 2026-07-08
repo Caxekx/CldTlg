@@ -1,268 +1,168 @@
-# Claude Code Telegram Bot на VPS
+# Claude Telegram VPS Bot — Ubuntu 24.04 / Timeweb / user `tsoillc`
 
-Закрытый Telegram-бот для внутренней команды: Telegram → VPS → Claude Code → папка конкретного проекта → ответ обратно в Telegram.
+Это закрытый Telegram-бот для тебя и небольшой команды. Он живёт на VPS, запускает Claude Code внутри выбранной папки проекта и возвращает ответ в Telegram.
 
-Подходит для сценария: ты + 1–2 человека из команды. Не рассчитано на публичных подписчиков и SaaS.
-
----
-
-## 0. Что внутри архива
+Текущая сборка уже адаптирована под вашу фактическую схему:
 
 ```text
-claude-telegram-vps-bot/
-├── bot.py                         # основной бот
-├── requirements.txt               # Python-зависимости
-├── .env.example                   # шаблон секретов
-├── users.example.json             # шаблон пользователей
-├── projects.example.json          # шаблон проектов
-├── project_templates/
-│   ├── CLAUDE.md                  # правила для каждого проекта
-│   └── .claude/settings.json      # доп. ограничения Claude Code
-├── scripts/
-│   ├── install.sh                 # установка зависимостей
-│   ├── run_once.sh                # ручной запуск для теста
-│   ├── check.sh                   # диагностика
-│   └── update.sh                  # обновление с GitHub на VPS
-├── systemd/
-│   └── claude-telegram-bot.service
-└── .github/workflows/deploy.yml   # пример деплоя через GitHub Actions
+Пользователь VPS: tsoillc
+Домашняя папка: /home/tsoillc
+Папка бота: /home/tsoillc/claude-telegram-vps-bot
+Папки проектов: /home/tsoillc/projects/...
+Claude Code установлен через npm: /home/tsoillc/.npm-global/bin/claude
 ```
 
----
-
-## 1. Логика работы
+## Как это работает
 
 ```text
-Telegram ID пользователя
+Telegram
 ↓
-users.json: можно ли ему пользоваться ботом?
+закрытый бот
 ↓
-projects.json: какие проекты ему доступны?
+VPS Ubuntu 24.04
 ↓
-/use rubrik выбирает папку /home/claudebot/projects/rubrik
+Claude Code
 ↓
-/ask, /plan или /code запускает claude -p внутри этой папки
+выбранная папка проекта
 ```
 
 Команды в Telegram:
 
 ```text
-/start      — инструкция
-/id         — узнать Telegram ID
-/projects   — список доступных проектов
+/start — инструкция
+/id — узнать Telegram ID
+/projects — список проектов
 /use rubrik — выбрать проект
-/where      — текущий проект
-/ask текст  — спросить без изменения файлов
-/plan текст — получить план без изменения файлов
-/code текст — разрешить менять файлы, только если can_edit=true
-/health     — диагностика Claude Code
+/where — показать активный проект
+/ask текст — спросить без изменения файлов
+/plan текст — получить план
+/code текст — разрешить Claude менять файлы
 ```
 
----
+## 1. Проверяем текущую папку и Claude Code
 
-## 2. Что выбрать: systemd, GitHub Actions, Docker, tmux?
+В терминале Ubuntu:
 
-### Лучший вариант для тебя: systemd на VPS
+```bash
+cd ~
+pwd
+whoami
+which claude
+claude auth status --text
+```
 
-Бот живёт на VPS постоянно. Если VPS перезагрузится, systemd сам поднимет бота.
+Ожидаемо:
 
 ```text
-Подходит: да
-Сложность: средняя
-Надёжность: высокая
+/home/tsoillc
+tsoillc
+/home/tsoillc/.npm-global/bin/claude
 ```
 
-### GitHub Actions
+Если `claude auth status --text` показывает, что логин есть, идём дальше.
 
-GitHub Actions не должен постоянно держать Telegram-бота. Используй его только для обновления кода на VPS после push в GitHub.
+## 2. Создаём папки проектов
+
+```bash
+cd ~
+mkdir -p projects/rubrik projects/avia-bot projects/chelsea
+ls projects
+```
+
+Должно быть:
 
 ```text
-Подходит для деплоя: да
-Подходит для постоянного запуска бота: нет
+avia-bot  chelsea  rubrik
 ```
 
-### Docker
+## 3. Проверяем доверие Claude к конкретной папке проекта
 
-Хороший вариант позже, но для первого запуска не нужен. Сначала проще systemd.
+Не запускаем Claude из `/home/tsoillc`, потому что это слишком широкая папка.
 
-### tmux
-
-Можно использовать для теста, но не как финальный запуск. После перезагрузки или падения процесса бот остановится.
-
----
-
-## 3. Подготовка VPS
-
-Подключись к серверу:
+Делаем так:
 
 ```bash
-ssh root@SERVER_IP
+cd ~/projects/rubrik
+claude
 ```
 
-Обнови сервер:
+Если Claude спросит, доверяешь ли папке, тут можно выбрать:
 
-```bash
-apt update && apt upgrade -y
+```text
+1. Yes, I trust this folder
 ```
 
-Поставь базовые пакеты:
+Потом выйди из Claude:
 
-```bash
-apt install -y python3 python3-venv python3-pip git curl nano
+```text
+/exit
 ```
 
-Создай отдельного пользователя под бота:
+или `Ctrl + C`.
+
+## 4. Как загрузить этот репозиторий на VPS
+
+### Вариант А — через GitHub repo
 
 ```bash
-adduser claudebot
+cd ~
+git clone GITHUB_REPO_URL claude-telegram-vps-bot
+cd ~/claude-telegram-vps-bot
 ```
 
-Переключись в него:
+`GITHUB_REPO_URL` замени на ссылку своего репозитория.
+
+### Вариант Б — через архив
+
+Если скачала zip на VPS в папку Downloads:
 
 ```bash
-su - claudebot
-```
-
----
-
-## 4. Установка Claude Code на VPS
-
-Внутри пользователя `claudebot`:
-
-```bash
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-Перезапусти shell:
-
-```bash
-exit
-su - claudebot
+cd ~/Downloads
+unzip claude-telegram-vps-bot.zip -d ~
+cd ~/claude-telegram-vps-bot
 ```
 
 Проверь:
 
 ```bash
-claude --version
+pwd
+ls
 ```
 
-Запусти первый логин:
-
-```bash
-claude
-```
-
-Claude Code покажет ссылку. Открой её у себя в браузере, войди в Claude с Max/Pro-подпиской и вставь код обратно в терминал VPS.
-
-Проверка авторизации:
-
-```bash
-claude auth status --text
-```
-
-Если команда `claude` не находится, попробуй:
-
-```bash
-which claude
-```
-
-И потом укажи этот путь в `.env` в переменной:
-
-```env
-CLAUDE_BINARY=/home/claudebot/.local/bin/claude
-```
-
----
-
-## 5. Создай Telegram-бота
-
-В Telegram открой `@BotFather`.
-
-Напиши:
+Ожидаемо:
 
 ```text
-/newbot
+/home/tsoillc/claude-telegram-vps-bot
+bot.py  scripts  systemd  requirements.txt  .env.example  users.example.json  projects.example.json
 ```
 
-Дальше:
-
-```text
-Name: Claude VPS Bot
-Username: your_claude_vps_bot
-```
-
-BotFather даст токен вида:
-
-```text
-1234567890:AAHxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Это вставишь в `.env`.
-
----
-
-## 6. Загрузка проекта бота на VPS
-
-### Вариант А. Без GitHub, просто архивом
-
-На своём компьютере распакуй архив и залей папку на VPS, например через SFTP/Transmit/Cyberduck.
-
-Итоговый путь должен быть:
-
-```text
-/home/claudebot/claude-telegram-vps-bot
-```
-
-### Вариант Б. Через GitHub
-
-1. Создай приватный репозиторий на GitHub.
-2. Загрузи туда содержимое архива.
-3. На VPS под пользователем `claudebot` сделай:
+## 5. Устанавливаем зависимости бота
 
 ```bash
-cd /home/claudebot
-git clone GITHUB_REPO_SSH_OR_HTTPS_URL claude-telegram-vps-bot
-cd claude-telegram-vps-bot
-```
-
-Пример placeholder:
-
-```bash
-git clone git@github.com:YOUR_USERNAME/claude-telegram-vps-bot.git claude-telegram-vps-bot
-```
-
----
-
-## 7. Установка бота
-
-Под пользователем `claudebot`:
-
-```bash
-cd /home/claudebot/claude-telegram-vps-bot
+cd ~/claude-telegram-vps-bot
+chmod +x scripts/install.sh scripts/run_once.sh scripts/check.sh scripts/update.sh
 ./scripts/install.sh
 ```
 
 Скрипт создаст:
 
 ```text
+venv/
 .env
 users.json
 projects.json
-venv/
 logs/
 ```
 
----
+## 6. Настраиваем `.env`
 
-## 8. Настрой `.env`
-
-Открой:
+Открыть файл:
 
 ```bash
 nano .env
 ```
 
-Заполни:
+Заполнить:
 
 ```env
 BOT_TOKEN=PASTE_TELEGRAM_BOT_TOKEN_HERE
@@ -271,17 +171,15 @@ MAX_PROMPT_CHARS=6000
 CLAUDE_TIMEOUT_SECONDS=900
 CLAUDE_MAX_TURNS_ASK=6
 CLAUDE_MAX_TURNS_CODE=10
-CLAUDE_BINARY=claude
+CLAUDE_BINARY=/home/tsoillc/.npm-global/bin/claude
 CLAUDE_EFFORT=
 ```
 
-Если systemd потом не увидит `claude`, замени:
+`BOT_TOKEN` берём у Telegram-бота `@BotFather`.
 
-```env
-CLAUDE_BINARY=/home/claudebot/.local/bin/claude
-```
+`ADMIN_IDS` — твой Telegram ID. Его можно узнать через `@userinfobot` или потом через команду `/id` у бота.
 
-Сохрани nano:
+Сохранить в nano:
 
 ```text
 Ctrl + O
@@ -289,62 +187,45 @@ Enter
 Ctrl + X
 ```
 
----
-
-## 9. Узнай свой Telegram ID
-
-Пока можно временно запустить бота и написать `/id`.
-
-```bash
-./scripts/run_once.sh
-```
-
-В Telegram напиши своему боту:
-
-```text
-/id
-```
-
-Он должен вернуть число, например:
-
-```text
-123456789
-```
-
-Останови ручной запуск:
-
-```text
-Ctrl + C
-```
-
----
-
-## 10. Настрой пользователей
-
-Открой:
+## 7. Настраиваем `users.json`
 
 ```bash
 nano users.json
 ```
 
-Пример:
+Минимально для тебя одной:
 
 ```json
 {
-  "123456789": {
-    "name": "Katerina",
+  "111111111": {
+    "name": "You",
+    "role": "admin",
+    "projects": ["*"],
+    "can_edit": true
+  }
+}
+```
+
+`111111111` замени на свой Telegram ID.
+
+Для команды:
+
+```json
+{
+  "111111111": {
+    "name": "You",
     "role": "admin",
     "projects": ["*"],
     "can_edit": true
   },
-  "987654321": {
+  "222222222": {
     "name": "Partner",
     "role": "team",
     "projects": ["rubrik", "avia-bot"],
     "can_edit": true
   },
-  "555555555": {
-    "name": "Designer",
+  "333333333": {
+    "name": "Viewer",
     "role": "viewer",
     "projects": ["rubrik"],
     "can_edit": false
@@ -352,139 +233,77 @@ nano users.json
 }
 ```
 
-Пояснение:
-
-```text
-projects: ["*"]       — доступны все проекты
-projects: ["rubrik"]  — доступен только rubrik
-can_edit: true         — можно /code
-can_edit: false        — только /ask и /plan
-```
-
----
-
-## 11. Настрой проекты
-
-Открой:
+## 8. Настраиваем `projects.json`
 
 ```bash
 nano projects.json
 ```
 
-Пример:
+Должно быть так:
 
 ```json
 {
   "rubrik": {
     "title": "RUBRIK",
-    "path": "/home/claudebot/projects/rubrik"
+    "path": "/home/tsoillc/projects/rubrik"
   },
   "avia-bot": {
     "title": "Avia Bot",
-    "path": "/home/claudebot/projects/avia-bot"
+    "path": "/home/tsoillc/projects/avia-bot"
   },
   "chelsea": {
     "title": "Chelsea Brand",
-    "path": "/home/claudebot/projects/chelsea"
+    "path": "/home/tsoillc/projects/chelsea"
   }
 }
 ```
 
-Создай папки:
+## 9. Кладём инструкции Claude в проекты
 
 ```bash
-mkdir -p /home/claudebot/projects/rubrik
-mkdir -p /home/claudebot/projects/avia-bot
-mkdir -p /home/claudebot/projects/chelsea
+cd ~/claude-telegram-vps-bot
+cp project_templates/CLAUDE.md ~/projects/rubrik/CLAUDE.md
+cp project_templates/CLAUDE.md ~/projects/avia-bot/CLAUDE.md
+cp project_templates/CLAUDE.md ~/projects/chelsea/CLAUDE.md
+
+mkdir -p ~/projects/rubrik/.claude ~/projects/avia-bot/.claude ~/projects/chelsea/.claude
+cp project_templates/.claude/settings.json ~/projects/rubrik/.claude/settings.json
+cp project_templates/.claude/settings.json ~/projects/avia-bot/.claude/settings.json
+cp project_templates/.claude/settings.json ~/projects/chelsea/.claude/settings.json
 ```
 
-Если проект лежит в GitHub:
+## 10. Тестируем бота вручную
 
 ```bash
-cd /home/claudebot/projects/rubrik
-git clone GITHUB_PROJECT_URL .
-```
-
-Если проекта пока нет, просто положи туда файлы вручную.
-
----
-
-## 12. Добавь правила Claude в каждый проект
-
-Для каждого проекта положи `CLAUDE.md`:
-
-```bash
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/CLAUDE.md /home/claudebot/projects/rubrik/CLAUDE.md
-```
-
-И опционально настройки ограничений:
-
-```bash
-mkdir -p /home/claudebot/projects/rubrik/.claude
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/.claude/settings.json /home/claudebot/projects/rubrik/.claude/settings.json
-```
-
-Повтори для других проектов:
-
-```bash
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/CLAUDE.md /home/claudebot/projects/avia-bot/CLAUDE.md
-mkdir -p /home/claudebot/projects/avia-bot/.claude
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/.claude/settings.json /home/claudebot/projects/avia-bot/.claude/settings.json
-```
-
----
-
-## 13. Первый тест вручную
-
-```bash
-cd /home/claudebot/claude-telegram-vps-bot
+cd ~/claude-telegram-vps-bot
 ./scripts/run_once.sh
 ```
 
-В Telegram:
+В Telegram напиши своему боту:
 
 ```text
 /start
 /projects
 /use rubrik
-/health
-/ask Объясни, что лежит в этом проекте
+/ask Что ты видишь в проекте?
 ```
 
-Если работает — останови:
+Остановить ручной запуск:
 
 ```text
 Ctrl + C
 ```
 
----
+## 11. Запускаем бота постоянно через systemd
 
-## 14. Запуск через systemd
-
-Выйди в root:
+Скопировать сервис:
 
 ```bash
-exit
-```
-
-Скопируй service:
-
-```bash
-cp /home/claudebot/claude-telegram-vps-bot/systemd/claude-telegram-bot.service /etc/systemd/system/claude-telegram-bot.service
-```
-
-Включи автозапуск:
-
-```bash
-systemctl daemon-reload
-systemctl enable claude-telegram-bot
-systemctl start claude-telegram-bot
-```
-
-Проверка:
-
-```bash
-systemctl status claude-telegram-bot
+sudo cp ~/claude-telegram-vps-bot/systemd/claude-telegram-bot.service /etc/systemd/system/claude-telegram-bot.service
+sudo systemctl daemon-reload
+sudo systemctl enable claude-telegram-bot
+sudo systemctl start claude-telegram-bot
+sudo systemctl status claude-telegram-bot
 ```
 
 Логи:
@@ -493,268 +312,92 @@ systemctl status claude-telegram-bot
 journalctl -u claude-telegram-bot -f
 ```
 
-Перезапуск:
+Если меняешь `.env`, `users.json` или `projects.json`, перезапуск:
 
 ```bash
-systemctl restart claude-telegram-bot
-```
-
----
-
-## 15. Обновление руками без GitHub Actions
-
-Под root или через sudo:
-
-```bash
-su - claudebot
-cd /home/claudebot/claude-telegram-vps-bot
-git pull
-./scripts/install.sh
-exit
-systemctl restart claude-telegram-bot
-```
-
-Это самый простой и понятный вариант.
-
----
-
-## 16. Обновление через GitHub Actions
-
-GitHub Actions здесь нужен не для запуска бота, а для команды:
-
-```text
-push в GitHub → GitHub подключается к VPS → git pull → restart systemd
-```
-
-### 16.1. Сгенерируй SSH-ключ для GitHub Actions на своём компьютере или VPS
-
-```bash
-ssh-keygen -t ed25519 -C "github-actions-claude-bot" -f github_actions_claude_bot
-```
-
-Появятся два файла:
-
-```text
-github_actions_claude_bot      — приватный ключ
-github_actions_claude_bot.pub  — публичный ключ
-```
-
-### 16.2. Добавь публичный ключ на VPS
-
-На VPS под пользователем `claudebot`:
-
-```bash
-mkdir -p ~/.ssh
-nano ~/.ssh/authorized_keys
-```
-
-Вставь содержимое файла:
-
-```text
-github_actions_claude_bot.pub
-```
-
-Права:
-
-```bash
-chmod 700 ~/.ssh
-chmod 600 ~/.ssh/authorized_keys
-```
-
-### 16.3. Разреши claudebot перезапускать только этот сервис
-
-Под root:
-
-```bash
-visudo -f /etc/sudoers.d/claudebot-systemctl
-```
-
-Вставь:
-
-```text
-claudebot ALL=NOPASSWD: /bin/systemctl restart claude-telegram-bot, /bin/systemctl status claude-telegram-bot
-```
-
-### 16.4. Добавь Secrets в GitHub
-
-В репозитории GitHub:
-
-```text
-Settings → Secrets and variables → Actions → New repository secret
-```
-
-Создай:
-
-```text
-VPS_HOST = SERVER_IP
-VPS_USER = claudebot
-VPS_SSH_KEY = содержимое приватного ключа github_actions_claude_bot
-BOT_DIR = /home/claudebot/claude-telegram-vps-bot
-```
-
-### 16.5. Проверь workflow
-
-Файл уже лежит тут:
-
-```text
-.github/workflows/deploy.yml
-```
-
-После push в `main` GitHub должен зайти на VPS и выполнить:
-
-```bash
-cd /home/claudebot/claude-telegram-vps-bot
-git pull --ff-only
-./scripts/install.sh
 sudo systemctl restart claude-telegram-bot
 ```
 
----
+## 12. GitHub Actions, если хочешь обновлять код через push
 
-## 17. Как добавить нового человека из команды
-
-1. Он пишет боту:
+Бот всё равно живёт на VPS через systemd. GitHub Actions нужен только для обновления кода:
 
 ```text
-/id
+push в GitHub
+↓
+GitHub Actions подключается к VPS
+↓
+git pull
+↓
+перезапуск systemd-сервиса
 ```
 
-2. Присылает тебе число.
+В GitHub Secrets добавь:
 
-3. Ты добавляешь его в `users.json`:
-
-```json
-"222222222": {
-  "name": "Partner",
-  "role": "team",
-  "projects": ["rubrik", "avia-bot"],
-  "can_edit": true
-}
+```text
+VPS_HOST = IP сервера
+VPS_USER = tsoillc
+VPS_SSH_KEY = приватный SSH-ключ для входа на VPS
+BOT_DIR = /home/tsoillc/claude-telegram-vps-bot
 ```
 
-4. Перезапуск не обязателен: бот читает `users.json` на каждый запрос. Но для спокойствия можно:
+Для перезапуска сервиса из Actions пользователю `tsoillc` нужно разрешить только одну sudo-команду.
+
+Открыть sudoers:
 
 ```bash
-systemctl restart claude-telegram-bot
+sudo visudo -f /etc/sudoers.d/tsoillc-systemctl
 ```
 
----
+Вставить:
 
-## 18. Как добавить новый проект
+```sudoers
+tsoillc ALL=(root) NOPASSWD: /usr/bin/systemctl restart claude-telegram-bot, /usr/bin/systemctl status claude-telegram-bot
+```
 
-1. Создай папку:
+Сохранить. Проверить:
 
 ```bash
-mkdir -p /home/claudebot/projects/new-project
+sudo systemctl status claude-telegram-bot --no-pager
 ```
 
-2. Положи туда файлы или склонируй GitHub:
+## 13. Что не пушить в GitHub
+
+Эти файлы должны оставаться только на VPS:
+
+```text
+.env
+users.json
+projects.json
+state.json
+venv/
+logs/
+```
+
+Они уже добавлены в `.gitignore`.
+
+## Быстрая проверка
 
 ```bash
-cd /home/claudebot/projects/new-project
-git clone GITHUB_PROJECT_URL .
+cd ~/claude-telegram-vps-bot
+./scripts/check.sh
 ```
 
-3. Добавь в `projects.json`:
-
-```json
-"new-project": {
-  "title": "New Project",
-  "path": "/home/claudebot/projects/new-project"
-}
-```
-
-4. Добавь доступ пользователю в `users.json`:
-
-```json
-"projects": ["rubrik", "new-project"]
-```
-
-5. Скопируй правила Claude:
+Если бот не отвечает:
 
 ```bash
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/CLAUDE.md /home/claudebot/projects/new-project/CLAUDE.md
-mkdir -p /home/claudebot/projects/new-project/.claude
-cp /home/claudebot/claude-telegram-vps-bot/project_templates/.claude/settings.json /home/claudebot/projects/new-project/.claude/settings.json
-```
-
----
-
-## 19. Что делать, если не работает
-
-### Бот не отвечает
-
-```bash
-systemctl status claude-telegram-bot
 journalctl -u claude-telegram-bot -f
 ```
 
-### Claude не авторизован
+Если Claude не найден:
 
 ```bash
-su - claudebot
-claude auth status --text
-claude
-```
-
-### systemd не видит claude
-
-```bash
-su - claudebot
 which claude
+nano .env
 ```
 
-Скопируй путь в `.env`:
+В `.env` должно быть:
 
 ```env
-CLAUDE_BINARY=/home/claudebot/.local/bin/claude
-```
-
-Потом:
-
-```bash
-systemctl restart claude-telegram-bot
-```
-
-### Ошибка в JSON
-
-Проверь, что в `users.json` и `projects.json` нет лишней запятой в конце.
-
-Плохой пример:
-
-```json
-{
-  "rubrik": {
-    "title": "RUBRIK"
-  },
-}
-```
-
-Хороший пример:
-
-```json
-{
-  "rubrik": {
-    "title": "RUBRIK"
-  }
-}
-```
-
----
-
-## 20. Минимальный чеклист запуска
-
-```text
-[ ] VPS обновлён
-[ ] создан пользователь claudebot
-[ ] Claude Code установлен под claudebot
-[ ] claude auth status --text показывает авторизацию
-[ ] создан Telegram-бот через BotFather
-[ ] .env заполнен
-[ ] users.json заполнен реальными Telegram ID
-[ ] projects.json указывает на реальные папки
-[ ] в проекте есть CLAUDE.md
-[ ] ./scripts/run_once.sh работает
-[ ] systemd service запущен
-[ ] /health в Telegram проходит
+CLAUDE_BINARY=/home/tsoillc/.npm-global/bin/claude
 ```

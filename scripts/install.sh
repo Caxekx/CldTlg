@@ -30,7 +30,7 @@ if [ ! -f projects.json ]; then
 fi
 
 mkdir -p logs
-mkdir -p /home/claudebot/projects/rubrik /home/claudebot/projects/avia-bot /home/claudebot/projects/chelsea 2>/dev/null || true
+mkdir -p /home/tsoillc/projects/rubrik /home/tsoillc/projects/avia-bot /home/tsoillc/projects/chelsea 2>/dev/null || true
 
 echo "==> Готово"
 echo "Дальше: nano .env, nano users.json, nano projects.json, потом: ./scripts/run_once.sh"

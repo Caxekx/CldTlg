@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=claudebot
-WorkingDirectory=/home/claudebot/claude-telegram-vps-bot
-Environment=HOME=/home/claudebot
-Environment=PATH=/home/claudebot/.local/bin:/usr/local/bin:/usr/bin:/bin
-EnvironmentFile=/home/claudebot/claude-telegram-vps-bot/.env
-ExecStart=/home/claudebot/claude-telegram-vps-bot/venv/bin/python /home/claudebot/claude-telegram-vps-bot/bot.py
+User=tsoillc
+WorkingDirectory=/home/tsoillc/claude-telegram-vps-bot
+Environment=HOME=/home/tsoillc
+Environment=PATH=/home/tsoillc/.npm-global/bin:/home/tsoillc/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/tsoillc/claude-telegram-vps-bot/.env
+ExecStart=/home/tsoillc/claude-telegram-vps-bot/venv/bin/python /home/tsoillc/claude-telegram-vps-bot/bot.py
 Restart=always
 RestartSec=10
 

@@ -1,36 +1,41 @@
-# GitHub Actions или systemd?
+# GitHub Actions vs systemd
 
-## Коротко
+Для этого проекта GitHub Actions не запускает Telegram-бота 24/7.
 
-- **systemd** — запускает Telegram-бота постоянно на VPS.
-- **GitHub Actions** — обновляет код на VPS после push в GitHub.
-
-Не стоит запускать Telegram-бота прямо в GitHub Actions: workflow не предназначен для вечного процесса 24/7.
-
-## Рекомендуемая схема
+Правильная схема:
 
 ```text
-GitHub repo
-↓ push
-GitHub Actions
-↓ ssh на VPS
-cd /home/claudebot/claude-telegram-vps-bot
-↓
-git pull
-↓
-systemctl restart claude-telegram-bot
+systemd на VPS — держит бота запущенным постоянно
+GitHub Actions — только обновляет код на VPS после push
 ```
 
-## Когда хватит ручного обновления
+Папка бота на нашем VPS:
 
-Если бот для тебя и 1–2 человек, можно вообще не делать GitHub Actions. Достаточно:
+```text
+/home/tsoillc/claude-telegram-vps-bot
+```
+
+Пользователь VPS:
+
+```text
+tsoillc
+```
+
+Команды ручного обновления на VPS:
 
 ```bash
-ssh root@SERVER_IP
-su - claudebot
-cd /home/claudebot/claude-telegram-vps-bot
-git pull
+cd /home/tsoillc/claude-telegram-vps-bot
+git pull --ff-only
 ./scripts/install.sh
-exit
-systemctl restart claude-telegram-bot
+sudo systemctl restart claude-telegram-bot
+sudo systemctl status claude-telegram-bot --no-pager
+```
+
+Для GitHub Actions в Secrets:
+
+```text
+VPS_HOST = IP сервера
+VPS_USER = tsoillc
+VPS_SSH_KEY = приватный SSH-ключ
+BOT_DIR = /home/tsoillc/claude-telegram-vps-bot
 ```
