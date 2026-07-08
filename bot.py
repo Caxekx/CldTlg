@@ -315,7 +315,7 @@ async def use_project(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if not user:
         return
     if not context.args:
-        await update.message.reply_text("Напиши так: /use rubrik")
+        await update.message.reply_text("Напиши так: /use fil")
         return
 
     project_key = context.args[0].strip()

@@ -1,14 +1,14 @@
 {
-  "rubrik": {
-    "title": "RUBRIK",
-    "path": "/home/tsoillc/projects/rubrik"
+  "fil": {
+    "title": "Fil",
+    "path": "/home/tsoillc/projects/fil"
   },
-  "avia-bot": {
-    "title": "Avia Bot",
-    "path": "/home/tsoillc/projects/avia-bot"
+  "rimm": {
+    "title": "Rimm",
+    "path": "/home/tsoillc/projects/rimm"
   },
-  "chelsea": {
-    "title": "Chelsea Brand",
-    "path": "/home/tsoillc/projects/chelsea"
+  "alex": {
+    "title": "Alex",
+    "path": "/home/tsoillc/projects/alex"
   }
 }

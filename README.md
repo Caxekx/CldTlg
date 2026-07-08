@@ -32,7 +32,7 @@ Claude Code
 /start — инструкция
 /id — узнать Telegram ID
 /projects — список проектов
-/use rubrik — выбрать проект
+/use fil — выбрать проект
 /where — показать активный проект
 /ask текст — спросить без изменения файлов
 /plan текст — получить план
@@ -65,14 +65,14 @@ tsoillc
 
 ```bash
 cd ~
-mkdir -p projects/rubrik projects/avia-bot projects/chelsea
+mkdir -p projects/fil projects/rimm projects/alex
 ls projects
 ```
 
 Должно быть:
 
 ```text
-avia-bot  chelsea  rubrik
+alex  fil  rimm
 ```
 
 ## 3. Проверяем доверие Claude к конкретной папке проекта
@@ -82,7 +82,7 @@ avia-bot  chelsea  rubrik
 Делаем так:
 
 ```bash
-cd ~/projects/rubrik
+cd ~/projects/fil
 claude
 ```
 
@@ -221,13 +221,13 @@ nano users.json
   "222222222": {
     "name": "Partner",
     "role": "team",
-    "projects": ["rubrik", "avia-bot"],
+    "projects": ["fil", "rimm"],
     "can_edit": true
   },
   "333333333": {
     "name": "Viewer",
     "role": "viewer",
-    "projects": ["rubrik"],
+    "projects": ["alex"],
     "can_edit": false
   }
 }
@@ -243,17 +243,17 @@ nano projects.json
 
 ```json
 {
-  "rubrik": {
-    "title": "RUBRIK",
-    "path": "/home/tsoillc/projects/rubrik"
+  "fil": {
+    "title": "Fil",
+    "path": "/home/tsoillc/projects/fil"
   },
-  "avia-bot": {
-    "title": "Avia Bot",
-    "path": "/home/tsoillc/projects/avia-bot"
+  "rimm": {
+    "title": "Rimm",
+    "path": "/home/tsoillc/projects/rimm"
   },
-  "chelsea": {
-    "title": "Chelsea Brand",
-    "path": "/home/tsoillc/projects/chelsea"
+  "alex": {
+    "title": "Alex",
+    "path": "/home/tsoillc/projects/alex"
   }
 }
 ```
@@ -262,14 +262,14 @@ nano projects.json
 
 ```bash
 cd ~/claude-telegram-vps-bot
-cp project_templates/CLAUDE.md ~/projects/rubrik/CLAUDE.md
-cp project_templates/CLAUDE.md ~/projects/avia-bot/CLAUDE.md
-cp project_templates/CLAUDE.md ~/projects/chelsea/CLAUDE.md
+cp project_templates/CLAUDE.md ~/projects/fil/CLAUDE.md
+cp project_templates/CLAUDE.md ~/projects/rimm/CLAUDE.md
+cp project_templates/CLAUDE.md ~/projects/alex/CLAUDE.md
 
-mkdir -p ~/projects/rubrik/.claude ~/projects/avia-bot/.claude ~/projects/chelsea/.claude
-cp project_templates/.claude/settings.json ~/projects/rubrik/.claude/settings.json
-cp project_templates/.claude/settings.json ~/projects/avia-bot/.claude/settings.json
-cp project_templates/.claude/settings.json ~/projects/chelsea/.claude/settings.json
+mkdir -p ~/projects/fil/.claude ~/projects/rimm/.claude ~/projects/alex/.claude
+cp project_templates/.claude/settings.json ~/projects/fil/.claude/settings.json
+cp project_templates/.claude/settings.json ~/projects/rimm/.claude/settings.json
+cp project_templates/.claude/settings.json ~/projects/alex/.claude/settings.json
 ```
 
 ## 10. Тестируем бота вручную
@@ -284,7 +284,7 @@ cd ~/claude-telegram-vps-bot
 ```text
 /start
 /projects
-/use rubrik
+/use fil
 /ask Что ты видишь в проекте?
 ```
 
